@@ -276,7 +276,7 @@ sub receive_messages
 
 		if ($message{'TYPE'} eq 'NOTIFY')
 		{
-			# we will not add the running pDLNA installation to our SSDP database
+			# we will not add the running lombix dlna installation to our SSDP database
 			if ($peer_ip_addr eq $CONFIG{'LOCAL_IPADDR'} && $message{'USN'} eq $CONFIG{'UUID'})
 			{
 				LDLNA::Log::log('Ignore SSDP message from allowed client IP '.$peer_ip_addr.', because the message came from this running '.$CONFIG{'PROGRAM_NAME'}.' installation.', 2, 'discovery');

@@ -281,7 +281,7 @@ sub handle_connection
 	{
 		$response = preview_media($1);
 	}
-	elsif ($ENV{'OBJECT'} =~ /^\/icons\/(.*)$/) # handling pDLNA logo
+	elsif ($ENV{'OBJECT'} =~ /^\/icons\/(.*)$/) # handling lombix dlna logo
 	{
 		$response = logo($1);
 	}
@@ -1214,7 +1214,7 @@ sub logo
 		LDLNA::Log::log('Delivering Logo in format '.$type.' and with '.$size.'x'.$size.' pixels.', 2, 'httpgeneric');
 
 		GD::Image->trueColor(1);
-		my $image = GD::Image->new('LDLNA/pDLNA.png');
+		my $image = GD::Image->new('LDLNA/logo.png');
 		my $preview = GD::Image->new($size, $size);
 
 		# all black areas of the image should be transparent

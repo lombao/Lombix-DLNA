@@ -14,6 +14,6 @@ Version 0.70.0
 - Database code rebuild
 - Change of the startup process
 - Add support to RTMP streams
-- Removal many perl module dependencies
+- Removal several perl module dependencies
 
 

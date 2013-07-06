@@ -85,7 +85,7 @@ sub initialize_db
 			\@results,
 		);
 
-		# check if DB was build with a different database version of pDLNA
+		# check if DB was build with a different database version of Lombix DLNA
 		if (!defined($results[0]->{VALUE}) || $results[0]->{VALUE} ne $CONFIG{'PROGRAM_DBVERSION'})
 		{
 			$dbh->do('DELETE FROM "METADATA";');
