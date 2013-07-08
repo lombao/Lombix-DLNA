@@ -64,6 +64,10 @@ LDLNA::Daemon::write_pidfile($CONFIG{'PIDFILE'}, $$);
 my $thread1 = threads->create('LDLNA::ContentLibrary::index_directories_thread');
 $thread1->detach();
 
+my $thread11 = threads->create('LDLNA::ContentLibrary::index_directories_thread_external');
+$thread11->detach();
+
+
 # starting up
 LDLNA::Log::log("Server is going to listen on $CONFIG{'LOCAL_IPADDR'} on interface $CONFIG{'LISTEN_INTERFACE'}.", 1, 'default');
 my $thread2 = threads->create('LDLNA::HTTPServer::start_webserver'); # starting the HTTP server in a thread

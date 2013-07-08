@@ -719,7 +719,7 @@ sub create_thumbnail
      my $tndir = dirname($file)."/.thumbnails";
      my $outputfile = $tndir."/".$record->{ID}.".jpg";
      my $ffmpegbin = LDLNA::Config::get_ffmpeg();    
-     my $cmd = "$ffmpegbin -i $file -r 1 -t 2 -ss 00:00:10 $outputfile >/dev/null 2>&1";
+     my $cmd = "$ffmpegbin -i \"$file\" -r 1 -t 2 -ss 00:00:10 $outputfile >/dev/null 2>&1";
      mkdir $tndir;
      system($cmd);
    }   

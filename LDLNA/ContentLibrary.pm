@@ -36,13 +36,38 @@ use LDLNA::Log;
 use LDLNA::Media;
 use LDLNA::Utils;
 
+
+sub index_directories_thread_external
+{
+                LDLNA::Log::log('Starting LDLNA::ContentLibrary::index_directories_thread_external().', 1, 'library');
+                my $timestamp_start = time();
+		foreach my $external (@{$CONFIG{'EXTERNALS'}})
+		{
+			add_file_to_db(
+				
+				{
+					'element' => $external->{'command'} || $external->{'streamurl'},
+					'media_type' => $external->{'type'},
+					'mime_type' => undef, # need to determine
+					'element_basename' => $external->{'name'},
+					'element_dirname' => undef, # set the directory to nothing - no parent
+					'external' => 1,
+					'root' => 1,
+				},
+			);
+		}
+                my $timestamp_end = time();
+                my $duration = $timestamp_end - $timestamp_start;
+	        LDLNA::Log::log('Indexing configured external media  '.$duration.' seconds.', 1, 'library');
+		                     
+    threads->exit();
+}
+
 sub index_directories_thread
 {
 	LDLNA::Log::log('Starting LDLNA::ContentLibrary::index_directories_thread().', 1, 'library');
 	while(1)
-	{
-		
-
+	{	
 		my $timestamp_start = time();
 		foreach my $directory (@{$CONFIG{'DIRECTORIES'}}) # we are not able to run this part in threads - since glob seems to be NOT thread safe
 		{
@@ -59,40 +84,17 @@ sub index_directories_thread
 				},
 			);
 		}
-
-		my $i = 0;
-		foreach my $external (@{$CONFIG{'EXTERNALS'}})
-		{
-			add_file_to_db(
-				
-				{
-					'element' => $external->{'command'} || $external->{'streamurl'},
-					'media_type' => $external->{'type'},
-					'mime_type' => undef, # need to determine
-					'element_basename' => $external->{'name'},
-					'element_dirname' => undef, # set the directory to nothing - no parent
-					'external' => 1,
-					'sequence' => $i,
-					'root' => 1,
-				},
-			);
-			$i++;
-		}
 		my $timestamp_end = time();
 
 		# add our timestamp when finished
-        LDLNA::Database::metadata_update_value($timestamp_end,'TIMESTAMP');
+                LDLNA::Database::metadata_update_value($timestamp_end,'TIMESTAMP');
 
 		my $duration = $timestamp_end - $timestamp_start;
 		LDLNA::Log::log('Indexing configured media directories took '.$duration.' seconds.', 1, 'library');
 
 		my ($amount, $size) = LDLNA::Database::files_get_all_size();
 		LDLNA::Log::log('Configured media directories include '.$amount.' with '.LDLNA::Utils::convert_bytes($size).' of size.', 1, 'library');
-
 		remove_nonexistant_files();
-		
-
-
 		sleep $CONFIG{'RESCAN_MEDIA'};
 	}
 }
@@ -202,7 +204,6 @@ sub process_directory
 								'element_basename' => $items[$i],
 								'element_dirname' => $element, # set the directory to the playlist file itself
 								'external' => 1,
-								'sequence' => $i,
 								'root' => 0,
 							},
 						);
@@ -227,7 +228,6 @@ sub process_directory
 									'element_basename' => basename($items[$i]),
 									'element_dirname' => $element, # set the directory to the playlist file itself
 									'external' => 0,
-									'sequence' => $i,
 									'root' => 0,
 								},
 							);
@@ -325,6 +325,7 @@ sub add_file_to_db
 		   {
 			# update the datbase entry (something changed)
                         # TODO : We have here at least two updates that we could consolidate into a single one
+                        LDLNA::Log::log("File: ".$$params{'element'}." has changed so we re-scan it and add to the db",1,'database');
 			LDLNA::Database::files_update($results->{ID} , { DATE => $fileinfo[9], SIZE => $fileinfo[7], MIME_TYPE => $$params{'mime_type'}, TYPE => $$params{'media_type'}, SEQUENCE => $$params{'sequence'} } );
 			LDLNA::Database::files_update($results->{ID}, \%info );
 			LDLNA::Media::create_thumbnail($results);
