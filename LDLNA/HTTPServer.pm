@@ -24,6 +24,7 @@ package LDLNA::HTTPServer;
 use strict;
 use warnings;
 
+use File::Basename;
 use Fcntl;
 use Data::Dumper;
 use Date::Format;
@@ -1099,7 +1100,7 @@ sub preview_media
                 my $item_info = $records[0];
 		if (defined($item_info->{FULLNAME}))
 		{
-			if (-f $item_info->{FULLNAME})
+			unless (-f $item_info->{FULLNAME})
 			{
 				LDLNA::Log::log('Delivering preview for NON EXISTING Item is NOT supported.', 2, 'httpstream');
 				return http_header({
@@ -1128,29 +1129,12 @@ sub preview_media
 
 			LDLNA::Log::log('Delivering preview for: '.$item_info->{FULLNAME}.'.', 2, 'httpstream');
 
-			my $randid = '';
 			my $path = $item_info->{FULLNAME};
-			if ($item_info->{TYPE} eq 'video') # we need to create the thumbnail
+			if ($item_info->{TYPE} eq 'video')
 			{
-    			  	LDLNA::Log::log('Delivering preview for Video Item is NOT supported yet.', 2, 'httpstream');
-			        return http_header({
-			                     'statuscode' => 501,
-			                     'content_type' => 'text/plain',
-			        });
-			                                                                                                                                                  
-				#$randid = LDLNA::Utils::get_randid();
-				# this way is a little bit ugly ... but works for me
-				#system($CONFIG{'MPLAYER_BIN'}.' -vo jpeg:outdir='.$CONFIG{'TMP_DIR'}.'/'.$randid.'/ -frames 1 -ss 10 "'.$path.'" > /dev/null 2>&1');
-				#$path = glob("$CONFIG{'TMP_DIR'}/$randid/*");
-				#unless (defined($path))
-				#{
-				#	LDLNA::Log::log('Problem creating temporary directory for Item Preview.', 2, 'httpstream');
-				#	return http_header({
-				#		'statuscode' => 404,
-				#		'content_type' => 'text/plain',
-				#	});
-				#}
-			}
+			 # There is a more clean and portable way to create path in perl, to review                                                                                                                                                 
+			 $path = dirname($item_info->{FULLNAME})."/.thumbnails/".$item_info->{ID}.".jpg";                                                                                                                                                 
+ 			}
 
 			# image scaling stuff
 			GD::Image->trueColor(1);
@@ -1167,12 +1151,6 @@ sub preview_media
 			my $preview = GD::Image->new(160, $height);
 			$preview->copyResampled($image, 0, 0, 0, 0, 160, $height, $image->width, $image->height);
 
-			# remove tmp files from thumbnail generation
-			if ($item_info->{TYPE} eq 'video')
-			{
-				unlink($path);
-				rmdir("$CONFIG{'TMP_DIR'}/$randid");
-			}
 
 			# the response itself
 			my $response = http_header({

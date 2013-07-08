@@ -28,9 +28,9 @@ use warnings;
 
 
 use Fcntl;
+use File::Basename;
 use XML::Simple;
 
-use LDLNA::Config;
 
 my %MIME_TYPES = (
 	'image/jpeg' => 'jpeg',
@@ -442,6 +442,7 @@ sub return_type_by_mimetype
 sub get_dlnacontentfeatures
 {
 	my $item = shift;
+	my $transcode = shift; # This is here becayse some functions still expect three parameters, to be reviewed
 	my $type = shift;
 
 	my $contentfeatures = '';
@@ -627,6 +628,7 @@ sub get_mimetype_by_modelname
 	if ($modelname eq 'Samsung DTV DMR')
 	{
 		return 'video/x-mkv' if $mimetype eq 'video/x-matroska';
+
 		return 'video/x-avi' if $mimetype eq 'video/x-msvideo';
 	}
 	return $mimetype;
@@ -703,6 +705,24 @@ sub parse_playlist
 		}
 	}
 	return @items;
+}
+
+#
+sub create_thumbnail
+{
+ my $record = shift;
+   
+   # Note, we only create thumbnails for Video type
+   if ($record->{TYPE} eq "video" &&  LDLNA::Config::get_videothumb() ) {
+     # There is no proper error control here, to be improved
+     my $file = $record->{FULLNAME};
+     my $tndir = dirname($file)."/.thumbnails";
+     my $outputfile = $tndir."/".$record->{ID}.".jpg";
+     my $ffmpegbin = LDLNA::Config::get_ffmpeg();    
+     my $cmd = "$ffmpegbin -i $file -r 1 -t 2 -ss 00:00:10 $outputfile >/dev/null 2>&1";
+     mkdir $tndir;
+     system($cmd);
+   }   
 }
 
 1;

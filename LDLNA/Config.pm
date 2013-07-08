@@ -536,4 +536,9 @@ sub get_rtmpdump
     return $CONFIG{'RTMPDUMP_BIN'};
 }
 
+sub get_videothumb
+{
+   return $CONFIG{'VIDEO_THUMBNAILS'};
+}
+
 1;

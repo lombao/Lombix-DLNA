@@ -319,28 +319,34 @@ sub add_file_to_db
     LDLNA::Media::get_media_info($$params{'element'}, \%info);
     if (defined($info{'TYPE'})) {  # Because if we cannot get the type of the file we will not bother adding it to db
 	   $results = (LDLNA::Database::get_records_by( "FILES", {FULLNAME => $$params{'element'}, PATH => $$params{'element_dirname'}} ))[0];
-       
-	   if (defined($results->{ID}))
+       	   if (defined($results->{ID}))
 	     {
 		  if ( $$params{'external'} == 0 and ($results->{SIZE} != $fileinfo[7] || $results->{DATE} != $fileinfo[9]) )
 		   {
 			# update the datbase entry (something changed)
-            # TODO : We have here at least two updates that we could consolidate into a single one
+                        # TODO : We have here at least two updates that we could consolidate into a single one
 			LDLNA::Database::files_update($results->{ID} , { DATE => $fileinfo[9], SIZE => $fileinfo[7], MIME_TYPE => $$params{'mime_type'}, TYPE => $$params{'media_type'}, SEQUENCE => $$params{'sequence'} } );
 			LDLNA::Database::files_update($results->{ID}, \%info );
+			LDLNA::Media::create_thumbnail($results);
 		   }
 	     }
 	  else
 	    {
 	     $$params{'size'} = $fileinfo[7];
-		 $$params{'date'} = $fileinfo[9];
-		 $$params{'file_extension'} = $file_extension;
+             $$params{'date'} = $fileinfo[9];
+	     $$params{'file_extension'} = $file_extension;
            
-		    $results = LDLNA::Database::files_insert_returning_record( $params );
-			LDLNA::Database::files_update( $results->{ID}, \%info );
-        }
-		
-	}
+	       $results = LDLNA::Database::files_insert_returning_record( $params );
+	       LDLNA::Database::files_update( $results->{ID}, \%info );
+               LDLNA::Media::create_thumbnail($results);		
+            }
+            
+          # Now, a last check, if the thumbnail is not present, we create it
+          unless ( -f (dirname($results->{FULLNAME}))."/.thumbnails/".$results->{ID}.".jpg" )
+          {
+           LDLNA::Media::create_thumbnail($results);
+          }		
+    }
     else {
       LDLNA::Log::log("File: ".$$params{'element'}." discarded and not added to the db",1,'database'); 
     }
