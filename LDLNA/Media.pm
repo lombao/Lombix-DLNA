@@ -155,8 +155,8 @@ my %CONTAINER = (
 		},
 	},
 	'avi' => {
-		'AudioCodecs' => ['mp3', 'a52', 'pcm_s16le'],
-		'VideoCodecs' => ['xdiv', 'divx', 'mpeg4','msmpeg4v3', 'h264','msmpeg4v1'],
+		'AudioCodecs' => ['mp3', 'a52', 'pcm_s16le','pcm_u8' ],
+		'VideoCodecs' => ['xdiv', 'divx', 'mpeg4','msmpeg4v3', 'h264','msmpeg4v1','mjpeg'],
 		'xvid' => {
 			'MimeType' => 'video/x-divx', # video/avi, video/msvideo
 			'FileExtension' => 'avi',
@@ -167,22 +167,27 @@ my %CONTAINER = (
 			'FileExtension' => 'avi',
 			'MediaType' => 'video',
 		},
-        'mpeg4' => {
+		'mpeg4' => {
 			'MimeType' => 'video/mp4', # video/avi, video/msvideo
 			'FileExtension' => 'avi',
 			'MediaType' => 'video',
 		},
-        'msmpeg4v3' => {
+		'msmpeg4v3' => {
 			'MimeType' => 'video/mp4', # video/avi, video/msvideo
 			'FileExtension' => 'avi',
 			'MediaType' => 'video',
 		},
-        'msmpeg4v1' => {
+		'msmpeg4v1' => {
 			'MimeType' => 'video/mp4', # video/avi, video/msvideo
 			'FileExtension' => 'avi',
 			'MediaType' => 'video',
 		},
-        'h264' => {
+		'h264' => {
+			'MimeType' => 'video/mp4', # video/avi, video/msvideo
+			'FileExtension' => 'avi',
+			'MediaType' => 'video',
+		},
+		'mjpeg' => {
 			'MimeType' => 'video/mp4', # video/avi, video/msvideo
 			'FileExtension' => 'avi',
 			'MediaType' => 'video',
