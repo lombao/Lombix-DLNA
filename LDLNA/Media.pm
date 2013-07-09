@@ -610,11 +610,11 @@ sub get_media_info
 
 	if (defined($$info{MIME_TYPE}) && defined($$info{TYPE}) && defined($$info{FILE_EXTENSION}))
 	{
-		LDLNA::Log::log('LDLNA::Media::details() returned for '.$file.": $$info{MIME_TYPE}, $$info{TYPE}, $$info{FILE_EXTENSION}", 3, 'library');
+		LDLNA::Log::log('LDLNA::Media::details() returned for '.$file.": $$info{MIME_TYPE}, $$info{TYPE}, $$info{FILE_EXTENSION}", 1, 'library');
 	}
 	else
 	{
-		LDLNA::Log::log('LDLNA::Media::details() was unable to determine details for '.$file.'.', 3, 'library');
+		LDLNA::Log::log('LDLNA::Media::details() was unable to determine details for '.$file.'.', 1, 'library');
 	}
 
 	return 1;
