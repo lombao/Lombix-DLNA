@@ -72,7 +72,7 @@ my %AUDIO_CODECS = (
 	'mp3' => 'mp3',
 	'ffvorbis' => 'vorbis',
 	'pcm' => 'wav',
-    'pcm_s16le' => 'wav',
+        'pcm_s16le' => 'wav',
 	'ffwmav1' => 'wmav1',
 	'ffwmav2' => 'wmav2',
 	'ffmp3float' => 'mp3',
@@ -113,7 +113,7 @@ my %CONTAINER = (
 		},
 	},
     'wav' => {
-		'AudioCodecs' => ['mp3', 'pcm_s16le'],
+		'AudioCodecs' => ['mp3', 'pcm_s16le','pcm_mulaw'],
 		'VideoCodecs' => [],
 		'mp3' => {
 			'MimeType' => 'audio/mpeg',
@@ -121,6 +121,11 @@ my %CONTAINER = (
 			'MediaType' => 'audio',
 		},
 		'pcm_s16le' => {
+			'MimeType' => 'audio/x-wav',
+			'FileExtension' => 'wav',
+			'MediaType' => 'audio',
+		},
+		'pcm_mulaw' => {
 			'MimeType' => 'audio/x-wav',
 			'FileExtension' => 'wav',
 			'MediaType' => 'audio',
