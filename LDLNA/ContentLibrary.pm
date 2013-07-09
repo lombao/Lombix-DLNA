@@ -65,13 +65,18 @@ sub index_directories_thread_external
 
 sub index_directories_thread
 {
+ my @threads;
+ 
 	LDLNA::Log::log('Starting LDLNA::ContentLibrary::index_directories_thread().', 1, 'library');
 	while(1)
 	{	
 		my $timestamp_start = time();
-		foreach my $directory (@{$CONFIG{'DIRECTORIES'}}) # we are not able to run this part in threads - since glob seems to be NOT thread safe
+		foreach my $directory (@{$CONFIG{'DIRECTORIES'}}) 
 		{
-			process_directory(
+		
+				
+		 push @threads , threads->create(
+			sub { process_directory(
 				
 				{
 					'path' => $directory->{'path'},
@@ -82,8 +87,13 @@ sub index_directories_thread
 					'allow_playlists' => $directory->{'allow_playlists'},
 					'rootdir' => 1,
 				},
-			);
-		}
+                              )
+                            }
+			 ); 
+	        }
+
+
+		$_->join foreach @threads;
 		my $timestamp_end = time();
 
 		# add our timestamp when finished
@@ -122,10 +132,10 @@ sub process_directory
 		elsif (-d "$element" && $$params{'recursion'} eq 'yes' && !grep(/^$element_basename$/, @{$$params{'exclude_dirs'}}))
 		{
 			LDLNA::Log::log('Processing directory '.$element.'.', 2, 'library');
-
-			process_directory(
+                         
+                             process_directory(
 				
-				{
+				     {
 					'path' => $element,
 					'type' => $$params{'type'},
 					'recursion' => $$params{'recursion'},
@@ -133,8 +143,9 @@ sub process_directory
 					'exclude_items' => $$params{'exclude_items'},
 					'allow_playlists' => $$params{'allow_playlists'},
 					'rootdir' => 0,
-				}
-			);
+				     }
+			          );
+                                
 		}
 		elsif (-f "$element" && !grep(/^$element_basename$/, @{$$params{'exclude_items'}}))
 		{
@@ -314,11 +325,15 @@ sub add_file_to_db
 	$$params{'sequence'} = 0 if !defined($$params{'sequence'});
 
 	# check if file is in db
-    my %info = ();
-    my $results;
-    LDLNA::Media::get_media_info($$params{'element'}, \%info);
-    if (defined($info{'TYPE'})) {  # Because if we cannot get the type of the file we will not bother adding it to db
-	   $results = (LDLNA::Database::get_records_by( "FILES", {FULLNAME => $$params{'element'}, PATH => $$params{'element_dirname'}} ))[0];
+
+         my $results = (LDLNA::Database::get_records_by( "FILES", {FULLNAME => $$params{'element'}, PATH => $$params{'element_dirname'}} ))[0];
+         return if (defined($results->{ID}) and  $$params{'external'} == 1); # If already there an external stream we skip.. is too costly checking all the time
+         return if (defined($results->{ID}) and $$params{'external'} == 0 and ($results->{SIZE} == $fileinfo[7] and $results->{DATE} == $fileinfo[9]) );
+        
+
+         my %info = ();
+         LDLNA::Media::get_media_info($$params{'element'}, \%info);
+         if (defined($info{'TYPE'})) {  # Because if we cannot get the type of the file we will not bother adding it to db
        	   if (defined($results->{ID}))
 	     {
 		  if ( $$params{'external'} == 0 and ($results->{SIZE} != $fileinfo[7] || $results->{DATE} != $fileinfo[9]) )
