@@ -63,7 +63,6 @@ our %CONFIG = (
 	'BUFFER_SIZE' => 32768, # 32 kB
 	'DEBUG' => 0,
 	'SPECIFIC_VIEWS' => 0,
-	'RESCAN_MEDIA' => 86400,
 	'TMP_DIR' => '/tmp',
 	'IMAGE_THUMBNAILS' => 0,
 	'VIDEO_THUMBNAILS' => 0,
@@ -75,10 +74,10 @@ our %CONFIG = (
 	'EXTERNALS' => [],
 	# values which can be modified manually :P
 	'PROGRAM_NAME' => 'Lombix DLNA',
-	'PROGRAM_VERSION' => '0.1',
+	'PROGRAM_VERSION' => '0.2',
 	'PROGRAM_DATE' => '2013-xx-xx',
 	'PROGRAM_BETA' => 1,
-	'PROGRAM_DBVERSION' => '1.0',
+	'PROGRAM_DBVERSION' => '1.1',
 	'PROGRAM_WEBSITE' => 'http://lombix.com',
 	'PROGRAM_AUTHOR' => 'Cesar Lombao',
 	'PROGRAM_DESC' => 'Perl DLNA MediaServer',
@@ -358,29 +357,6 @@ sub parse_config
 
 	
 
-	#
-	# RESCAN_MEDIA
-	#
-	if ($cfg->get('RescanMediaInterval'))
-	{
-		my %values = (
-			'never' => 0,
-			'hourly' => 3600,
-			'halfdaily' => '43200',
-			'daily' => 86400,
-		);
-
-		if (defined($values{$cfg->get('RescanMediaInterval')}))
-		{
-			$CONFIG{'RESCAN_MEDIA'} = $values{$cfg->get('RescanMediaInterval')};
-		}
-		else
-		{
-			push(@{$errormsg}, 'Invalid RescanMediaInterval:  Available options ['.join('|', keys %values).']');
-		}
-	}
-
-	#
 	# EnableImageThumbnails
 	#
 	$CONFIG{'IMAGE_THUMBNAILS'} = eval_binary_value($cfg->get('EnableImageThumbnails')) if defined($cfg->get('EnableImageThumbnails'));
@@ -433,44 +409,10 @@ sub parse_config
 		{
 			push(@{$errormsg}, 'Invalid Directory \''.$directory_block->[1].'\': Not a directory.');
 		}
-		unless (defined($block->get('MediaType')) && $block->get('MediaType') =~ /^(audio|video|image|all)$/)
-		{
-			push(@{$errormsg}, 'Invalid Directory \''.$directory_block->[1].'\': Invalid MediaType.');
-		}
 
-		my $recursion = 'yes';
-		if (defined($block->get('Recursion')))
-		{
-			if ($block->get('Recursion') !~ /^(no|yes)$/)
-			{
-				push(@{$errormsg}, 'Invalid Directory: \''.$directory_block->[1].'\': Invalid Recursion value.');
-			}
-			else
-			{
-				$recursion = $block->get('Recursion');
-			}
-		}
-
-		my @exclude_dirs = ();
-		if (defined($block->get('ExcludeDirs')))
-		{
-			@exclude_dirs = split(',', $block->get('ExcludeDirs'));
-		}
-		my @exclude_items = ();
-		if (defined($block->get('ExcludeItems')))
-		{
-			@exclude_items = split(',', $block->get('ExcludeItems'));
-		}
-
-		my $allow_playlists = eval_binary_value($block->get('AllowPlaylists')) if defined($block->get('AllowPlaylists'));
 
 		push(@{$CONFIG{'DIRECTORIES'}}, {
 				'path' => $directory_block->[1],
-				'type' => $block->get('MediaType'),
-				'recursion' => $recursion,
-				'exclude_dirs' => \@exclude_dirs,
-				'exclude_items' => \@exclude_items,
-				'allow_playlists' => $allow_playlists,
 			}
 		);
 	}

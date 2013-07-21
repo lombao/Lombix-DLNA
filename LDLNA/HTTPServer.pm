@@ -436,7 +436,7 @@ sub ctrl_content_directory_1
 			# get the subdirectories for the object_id requested
 			#
 			my @dire_elements = ();
-			LDLNA::Database::get_subdirectories_by_id( $object_id, $starting_index, $requested_count, \@dire_elements);
+			LDLNA::Database::directories_subdirectories_by_id( $object_id, $starting_index, $requested_count, \@dire_elements);
 
 			#
 			# get the full amount of subdirectories for the object_id requested

@@ -199,9 +199,7 @@ sub initialize_db
 				"ID"				'.$SQL_ID_KEYS{$CONFIG{DB_TYPE}}.',
 				"NAME"				VARCHAR(2048),
 				"PATH"				VARCHAR(2048),
-				"DIRNAME"			VARCHAR(2048),
-				"ROOT"				INTEGER,
-				"TYPE"				INTEGER
+				"DIRNAME"			VARCHAR(2048)
 			);'
 		);
 	}
@@ -1419,15 +1417,15 @@ sub directories_insert
  my $basename_path = shift;
  my $path          = shift;
  my $dirname_path  = shift;
- my $rootdir       = shift;
- my $type          = shift;
+ 
+ 
  
                 my $dbh = LDLNA::Database::connect();
                 LDLNA::Database::insert_db(
                          $dbh,
                           {
-                           'query' => 'INSERT INTO "DIRECTORIES" ("NAME", "PATH", "DIRNAME", "ROOT", "TYPE") VALUES (?,?,?,?,?)',
-                           'parameters' => [ $basename_path, $path, $dirname_path, $rootdir, $type ],
+                           'query' => 'INSERT INTO "DIRECTORIES" ("NAME", "PATH", "DIRNAME") VALUES (?,?,?)',
+                           'parameters' => [ $basename_path, $path, $dirname_path ],
                           },
                 );
                 LDLNA::Database::disconnect($dbh);
@@ -1452,34 +1450,30 @@ sub directories_delete
 }
 
 
-##
-## Others to catalog
-
-sub get_subdirectories_by_id
+sub directories_subdirectories_by_id
 {
  my $object_id = shift;
  my $starting_index = shift;    
  my $requested_count = shift;   
  my $directory_elements = shift;
 
-        my $dbh = LDLNA::Database::connect();
+        
 
+        my $sql_query;
+        my @sql_param;
 
-        my $sql_query = 'SELECT "ID", "NAME", "PATH" FROM "DIRECTORIES" WHERE ';
-        my @sql_param = ();
-
-        if ($object_id == 0)
+        if ($object_id == 0) 
         {
-                $sql_query .= '"ROOT" = 1';
-        }   
+          $sql_query = 'select * FROM "DIRECTORIES" WHERE "DIRNAME" not in ( select "PATH" from "DIRECTORIES")';
+          @sql_param = ();
+        }
         else
         {
-                $sql_query .= '"DIRNAME" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
-                push(@sql_param, $object_id);
+         $sql_query = 'SELECT * FROM "DIRECTORIES" WHERE "DIRNAME" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
+         push(@sql_param, $object_id);
         }
 
         $sql_query .= ' ORDER BY "NAME"';
-
         if (defined($starting_index) && defined($requested_count))
         {
             
@@ -1495,6 +1489,7 @@ sub get_subdirectories_by_id
 	
         }
 
+        my $dbh = LDLNA::Database::connect();
         LDLNA::Database::select_db(
                 $dbh,
                 {
@@ -1508,6 +1503,7 @@ sub get_subdirectories_by_id
 
 }
 
+##########################################
 
 sub get_subfiles_by_id
 {
@@ -1521,15 +1517,8 @@ sub get_subfiles_by_id
         my $sql_query = 'SELECT "ID", "NAME", "SIZE", "DATE" FROM "FILES" WHERE ';
         my @sql_param = ();
 
-        if ($object_id == 0)
-        {
-                $sql_query .= '"ROOT" = 1';
-        }
-        else
-        {   
                 $sql_query .= '"PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
                 push(@sql_param, $object_id);
-        }
 
         $sql_query .= ' ORDER BY "SEQUENCE", "NAME"';
 
@@ -1589,15 +1578,9 @@ sub get_amount_subdirectories_by_id
 
         my $sql_query = 'SELECT COUNT("ID") AS "AMOUNT" FROM "DIRECTORIES" WHERE ';
         my @sql_param = ();
-        if ($object_id == 0)
-        {
-                $sql_query .= '"ROOT" = 1';
-        }
-        else
-        {   
+        
                 $sql_query .= '"DIRNAME" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
                 push(@sql_param, $object_id);
-        }
 
         LDLNA::Database::select_db(
                 $dbh,

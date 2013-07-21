@@ -76,6 +76,7 @@ deb ). Only as a last resort you can use cpan to install just a few.
    * use Data::Dumper;
    * use SOAP::Lite;
    * use LWP::UserAgent;
+   * use Linux::Inotify2;
 
  - OPTIONAL MODULES ( You might need them depending on the options choosen )
 

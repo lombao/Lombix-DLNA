@@ -24,6 +24,7 @@ package LDLNA::ContentLibrary;
 use strict;
 use warnings;
 
+use Linux::Inotify2;
 use DBI;
 use Date::Format;
 use File::Basename;
@@ -36,6 +37,8 @@ use LDLNA::Log;
 use LDLNA::Media;
 use LDLNA::Utils;
 
+
+our $inotify;
 
 sub index_directories_thread_external
 {
@@ -65,35 +68,19 @@ sub index_directories_thread_external
 
 sub index_directories_thread
 {
- my @threads;
  
+
+        $inotify = new Linux::Inotify2 or die "unable to create new inotify object: $!";
 	LDLNA::Log::log('Starting LDLNA::ContentLibrary::index_directories_thread().', 1, 'library');
-	while(1)
-	{	
+
 		my $timestamp_start = time();
 		foreach my $directory (@{$CONFIG{'DIRECTORIES'}}) 
 		{
-		
 				
-		 push @threads , threads->create(
-			sub { process_directory(
-				
-				{
-					'path' => $directory->{'path'},
-					'type' => $directory->{'type'},
-					'recursion' => $directory->{'recursion'},
-					'exclude_dirs' => $directory->{'exclude_dirs'},
-					'exclude_items' => $directory->{'exclude_items'},
-					'allow_playlists' => $directory->{'allow_playlists'},
-					'rootdir' => 1,
-				},
-                              )
-                            }
-			 ); 
+		   process_directory(  $directory->{'path'} ); 
 	        }
 
-
-		$_->join foreach @threads;
+             
 		my $timestamp_end = time();
 
 		# add our timestamp when finished
@@ -104,22 +91,41 @@ sub index_directories_thread
 
 		my ($amount, $size) = LDLNA::Database::files_get_all_size();
 		LDLNA::Log::log('Configured media directories include '.$amount.' with '.LDLNA::Utils::convert_bytes($size).' of size.', 1, 'library');
-		remove_nonexistant_files();
-		sleep $CONFIG{'RESCAN_MEDIA'};
-	}
+
+
+1 while $inotify->poll;
+	
+}
+
+sub inotify_process_directory
+{
+ my $e = shift;
+ 
+    my $name = $e->fullname;
+    if ( $e->IN_CREATE ) 
+     {
+       LDLNA::Log::log('New file included '.$e->fullname, 1, 'library');  
+       process_directory( dirname($name) );
+     }
+    elsif ($e->IN_DELETE )
+     {
+      remove_nonexistant_files(); # This is brutal, if we have the name we shouldnt re-check ALL the files.
+                                  # OBviously to be improved
+     }
+                
 }
 
 sub process_directory
 {
+	my $path  = shift;
+	$path =~ s/\/$//;
 
-	my $params = shift;
-	$$params{'path'} =~ s/\/$//;
+	add_directory_to_db( $path );
+	$inotify->watch($path, IN_CREATE | IN_DELETE, \&inotify_process_directory);
 
-	add_directory_to_db( $$params{'path'}, $$params{'rootdir'}, 0);
-
-	$$params{'path'} = LDLNA::Utils::escape_brackets($$params{'path'});
-	LDLNA::Log::log('Globbing directory: '.LDLNA::Utils::create_filesystem_path([ $$params{'path'}, '*', ]).'.', 2, 'library');
-	my @elements = bsd_glob(LDLNA::Utils::create_filesystem_path([ $$params{'path'}, '*', ]));
+	$path = LDLNA::Utils::escape_brackets($path);
+	LDLNA::Log::log('Globbing directory: '.LDLNA::Utils::create_filesystem_path([ $path, '*', ]).'.', 2, 'library');
+	my @elements = bsd_glob(LDLNA::Utils::create_filesystem_path([ $path, '*', ]));
 	foreach my $element (sort @elements)
 	{
 		my $element_basename = basename($element);
@@ -129,34 +135,20 @@ sub process_directory
 			LDLNA::Log::log('Skipping '.$element.' directory.', 2, 'library');
 			next;
 		}
-		elsif (-d "$element" && $$params{'recursion'} eq 'yes' && !grep(/^$element_basename$/, @{$$params{'exclude_dirs'}}))
+		elsif (-d "$element" )
 		{
 			LDLNA::Log::log('Processing directory '.$element.'.', 2, 'library');
-                         
-                             process_directory(
-				
-				     {
-					'path' => $element,
-					'type' => $$params{'type'},
-					'recursion' => $$params{'recursion'},
-					'exclude_dirs' => $$params{'exclude_dirs'},
-					'exclude_items' => $$params{'exclude_items'},
-					'allow_playlists' => $$params{'allow_playlists'},
-					'rootdir' => 0,
-				     }
-			          );
+                        process_directory( $element );
                                 
 		}
-		elsif (-f "$element" && !grep(/^$element_basename$/, @{$$params{'exclude_items'}}))
+		elsif (-f "$element" )
 		{
 			my $mime_type = mimetype($element);
 			LDLNA::Log::log('Processing '.$element.' with MimeType '.$mime_type.'.', 2, 'library');
 
 			if (LDLNA::Media::is_supported_mimetype($mime_type))
 			{
-				my $media_type = LDLNA::Media::return_type_by_mimetype($mime_type);
-				if ($media_type && ($media_type eq $$params{'type'} || $$params{'type'} eq "all"))
-				{
+				        my $media_type = LDLNA::Media::return_type_by_mimetype($mime_type);
 					LDLNA::Log::log('Adding '.$media_type.' element '.$element.'.', 2, 'library');
 
 					my $fileid = add_file_to_db(
@@ -195,16 +187,16 @@ sub process_directory
 							}
 						}
 					}
-				}
+                              
 			}
 			elsif (LDLNA::Media::is_supported_playlist($mime_type))
 			{
 				LDLNA::Log::log('Adding playlist '.$element.' as directory.', 2, 'library');
-				add_directory_to_db( $element, $$params{'rootdir'}, 1);
+				add_directory_to_db( $element );
 				my @items = LDLNA::Media::parse_playlist($element, $mime_type);
 				for (my $i = 0; $i < @items; $i++)
 				{
-					if (LDLNA::Media::is_supported_stream($items[$i]) && $CONFIG{'LOW_RESOURCE_MODE'} == 0)
+					if (LDLNA::Media::is_supported_stream($items[$i]) )
 					{
 						add_file_to_db(
 							
@@ -272,15 +264,15 @@ sub add_directory_to_db
 {
 
 	my $path = shift;
-	my $rootdir = shift;
-	my $type = shift;
+      
+	
 
 	# check if directoriy is in db
 	my $results = (LDLNA::Database::get_records_by("DIRECTORIES", { PATH => $path}))[0];
 	unless (defined($results->{ID}))
 	{
 		# add directory to database
-		LDLNA::Database::directories_insert(basename($path),$path,dirname($path),$rootdir,$type);
+		LDLNA::Database::directories_insert(basename($path),$path,dirname($path));
 		LDLNA::Log::log('Added directory '.$path.' to ContentLibrary.', 2, 'library');
 	}
 }
@@ -388,8 +380,7 @@ sub remove_nonexistant_files
 	foreach my $directory (@directories)
 	{
 		if (
-			($directory->{TYPE} == 0 && !-d "$directory->{PATH}") ||
-			($directory->{TYPE} == 1 && !-f "$directory->{PATH}")
+			( !-d "$directory->{PATH}")  && (!-f "$directory->{PATH}")
 		)
 		{
 			LDLNA::Database::directories_delete( $directory->{ID} );
@@ -407,7 +398,7 @@ sub remove_nonexistant_files
 
 	# delete not (any more) configured - directories from database
 	my @rootdirs = ();
-	LDLNA::Database::get_subdirectories_by_id( 0, undef, undef, \@rootdirs);
+	LDLNA::Database::directories_subdirectories_by_id( 0, undef, undef, \@rootdirs);
 
 	my @conf_directories = ();
 	foreach my $directory (@{$CONFIG{'DIRECTORIES'}})
@@ -495,7 +486,7 @@ sub delete_subitems_recursively
 	}
 
 	my @subdirs = ();
-	LDLNA::Database::get_subdirectories_by_id( $object_id, undef, undef, \@subdirs);
+	LDLNA::Database::directories_subdirectories_by_id( $object_id, undef, undef, \@subdirs);
 	foreach my $directory (@subdirs)
 	{
 		delete_subitems_recursively( $directory->{ID});

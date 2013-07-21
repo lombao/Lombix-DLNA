@@ -67,6 +67,9 @@ $thread1->detach();
 my $thread11 = threads->create('LDLNA::ContentLibrary::index_directories_thread_external');
 $thread11->detach();
 
+my $thread111 = threads->create('LDLNA::ContentLibrary::remove_nonexistant_files');
+$thread111->detach();   
+
 
 # starting up
 LDLNA::Log::log("Server is going to listen on $CONFIG{'LOCAL_IPADDR'} on interface $CONFIG{'LISTEN_INTERFACE'}.", 1, 'default');
