@@ -115,8 +115,10 @@ sub get_browseresponse_directory
 	my $directory_name = shift;
 	my $filter = shift;
 
-	my $directory_parent_id = LDLNA::Database::get_parent_of_directory_by_id( $directory_id);
-	my $directory_elements_amount = LDLNA::ContentLibrary::get_amount_elements_by_id( $directory_id);
+	my $directory_parent_id = LDLNA::Database::directories_get_parent( $directory_id);
+	my $directory_elements_amount = LDLNA::Database::get_amount_elements_by_id( $directory_id);
+
+
 
 	my @xml = ();
 	push(@xml, '&lt;container ');

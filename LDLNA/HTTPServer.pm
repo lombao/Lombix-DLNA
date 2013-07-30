@@ -398,9 +398,9 @@ sub ctrl_content_directory_1
 				@browsefilters = ('@id', '@parentID', '@childCount', '@restricted', 'dc:title', 'upnp:class');
 
 				# set object_id to parentid
-				my $directory_parent = LDLNA::Database::directories_get_records($object_id);
-				$directory_parent->{ID} = 0 if !defined($directory_parent->{ID});
-				$object_id = $directory_parent->{ID};
+				LDLNA::Log::log('BrowserMetadata with parentID , requested for: '.$object_id.'.', 3, 'httpdir');			
+				$object_id = LDLNA::Database::directories_get_parent($object_id);
+				LDLNA::Log::log('BrowserMetadata with parentID , answered : '.$object_id.'.', 3, 'httpdir');
 			}
 		}
 		elsif ($browse_flag eq 'BrowseDirectChildren')

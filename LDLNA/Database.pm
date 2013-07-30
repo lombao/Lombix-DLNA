@@ -1391,10 +1391,12 @@ sub subtitles_delete_by_fileid
 
 
 
-sub directories_get_records
+sub directories_get_parent
 {
      my $object_id = shift;
      
+        return 0  if (!defined ($object_id) || $object_id == 0 );
+        
         my @directories = ();
         my $dbh = LDLNA::Database::connect();
     	LDLNA::Database::select_db(
@@ -1406,8 +1408,11 @@ sub directories_get_records
 			\@directories,
 		);
         LDLNA::Database::disconnect($dbh);
+        
+        return 0 if !defined($directories[0]->{ID});
+        return $directories[0]->{ID};
     
-    return $directories[0];
+    
 }
 
 
@@ -1462,7 +1467,7 @@ sub directories_subdirectories_by_id
         my $sql_query;
         my @sql_param;
 
-        if ($object_id == 0) 
+        if (!defined ($object_id) || $object_id == 0 ) 
         {
           $sql_query = 'select * FROM "DIRECTORIES" WHERE "DIRNAME" not in ( select "PATH" from "DIRECTORIES")';
           @sql_param = ();
@@ -1517,8 +1522,18 @@ sub get_subfiles_by_id
         my $sql_query = 'SELECT "ID", "NAME", "SIZE", "DATE" FROM "FILES" WHERE ';
         my @sql_param = ();
 
-                $sql_query .= '"PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
-                push(@sql_param, $object_id);
+
+        if (!defined ($object_id) || $object_id == 0 ) 
+        {
+          $sql_query .= '"PATH" NOT IN ( SELECT "PATH" from "DIRECTORIES")';
+        }
+        else
+        {
+          $sql_query .= '"PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
+          push(@sql_param, $object_id);
+        }
+
+
 
         $sql_query .= ' ORDER BY "SEQUENCE", "NAME"';
 
@@ -1547,18 +1562,67 @@ sub get_subfiles_by_id
 
 }
 
+sub get_amount_subfiles_by_id
+{
+ my $object_id = shift;
+
+        my $dbh = LDLNA::Database::connect();
+        my @files_amount = ();
+
+        my $sql_query;
+        my @sql_param = ();
+
+        if (!defined ($object_id) || $object_id == 0 ) 
+        {
+          $sql_query = 'SELECT COUNT("ID") AS "AMOUNT" FROM "FILES" WHERE "PATH" NOT IN ( SELECT "PATH" from "DIRECTORIES")';
+        }
+        else
+        {
+          $sql_query = 'SELECT COUNT("ID") AS "AMOUNT" FROM "FILES" WHERE "PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ?)';
+          @sql_param = ( $object_id, );
+        }
+
+
+        LDLNA::Database::select_db(
+                $dbh,
+                {
+                        'query' => $sql_query,
+                        'parameters' => \@sql_param,
+                },
+                \@files_amount,
+        );
+        LDLNA::Database::disconnect($dbh);
+
+        return $files_amount[0]->{AMOUNT};
+}
+ 
+ 
+
 
 sub get_subfiles_size_by_id
 {
  my $object_id = shift;
+
+        my $sql_query;
+        my @sql_param = ();
+        
+        if (!defined ($object_id) || $object_id == 0 ) 
+        {
+          $sql_query = 'SELECT SUM("SIZE") AS "FULLSIZE" FROM "FILES" WHERE "PATH" NOT IN ( SELECT "PATH" from "DIRECTORIES")';
+        }
+        else
+        {
+          $sql_query = 'SELECT SUM("SIZE") AS "FULLSIZE" FROM "FILES" WHERE "PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
+          @sql_param = ( $object_id, );
+        }
 
         my $dbh = LDLNA::Database::connect();
         my @result = ();
         LDLNA::Database::select_db(
                 $dbh,
                 {
-                 'query' => 'SELECT SUM("SIZE") AS "FULLSIZE" FROM "FILES" WHERE "PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )',
-                 'parameters' => [ $object_id, ],
+                 'query' => $sql_query,
+                 'parameters' => @sql_param,
                 },
                 \@result,
         );
@@ -1579,8 +1643,17 @@ sub get_amount_subdirectories_by_id
         my $sql_query = 'SELECT COUNT("ID") AS "AMOUNT" FROM "DIRECTORIES" WHERE ';
         my @sql_param = ();
         
-                $sql_query .= '"DIRNAME" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
-                push(@sql_param, $object_id);
+        if (!defined ($object_id) || $object_id == 0 ) 
+        {
+          $sql_query .= '"DIRNAME" NOT IN ( SELECT "PATH" from "DIRECTORIES")';
+        }
+        else
+        {
+         $sql_query .= '"DIRNAME" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ? )';
+         push(@sql_param, $object_id);
+        }
+        
+
 
         LDLNA::Database::select_db(
                 $dbh,
@@ -1596,48 +1669,7 @@ sub get_amount_subdirectories_by_id
         return $directory_amount[0]->{AMOUNT};
 }
 
-sub get_amount_subfiles_by_id
-{
- my $object_id = shift;
 
-        my $dbh = LDLNA::Database::connect();
-        my @files_amount = ();
-
-        my $sql_query = 'SELECT COUNT("ID") AS "AMOUNT" FROM "FILES" WHERE "PATH" IN ( SELECT "PATH" FROM "DIRECTORIES" WHERE "ID" = ?)';
-        my @sql_param = ( $object_id, );
-        LDLNA::Database::select_db(
-                $dbh,
-                {
-                        'query' => $sql_query,
-                        'parameters' => \@sql_param,
-                },
-                \@files_amount,
-        );
-        LDLNA::Database::disconnect($dbh);
-
-        return $files_amount[0]->{AMOUNT};
-}
- 
- 
-sub get_parent_of_directory_by_id
-{
- my $object_id = shift;
-
-        my $dbh = LDLNA::Database::connect();
-        my @directory_parent = ();
-        LDLNA::Database::select_db(
-                $dbh,
-                {
-                'query' => 'SELECT "ID" FROM "DIRECTORIES" WHERE "PATH" IN ( SELECT "DIRNAME" FROM "DIRECTORIES" WHERE "ID" = ? )',
-                'parameters' => [ $object_id, ],
-                },
-                \@directory_parent,
-        );
-        $directory_parent[0]->{ID} = 0 if !defined($directory_parent[0]->{ID});
-        LDLNA::Database::disconnect($dbh);
-
-        return $directory_parent[0]->{ID};
-}
  
 sub get_parent_of_item_by_id
 {
@@ -1659,6 +1691,19 @@ sub get_parent_of_item_by_id
         return $item_parent[0]->{ID};
 }
 
+
+
+####
+sub get_amount_elements_by_id
+{
+ my $object_id = shift;
+                
+             my $directory_amount = 0;
+             $directory_amount += LDLNA::Database::get_amount_subdirectories_by_id( $object_id);
+             $directory_amount += LDLNA::Database::get_amount_subfiles_by_id( $object_id);
+                                       
+         return $directory_amount;
+}
 
 ##
 ##

@@ -498,35 +498,6 @@ sub delete_subitems_recursively
 
 
 
-#
-# various function for getting information about the ContentLibrary from the DB
-#
-
-sub get_amount_elements_by_id
-{
- my $object_id = shift;
-                
-             my $directory_amount = 0;
-             $directory_amount += LDLNA::Database::get_amount_subdirectories_by_id( $object_id);
-             $directory_amount += LDLNA::Database::get_amount_subfiles_by_id( $object_id);
-                                       
-         return $directory_amount;
-}
-
-
-sub is_in_same_directory_tree
-{
-	my $parent_id = shift;
-	my $child_id = shift;
-
-	while ($child_id != 0)
-	{
-		return 1 if $parent_id eq $child_id;
-		$child_id = LDLNA::Database::get_parent_of_directory_by_id( $child_id);
-	}
-
-	return 0;
-}
 
 
 #
