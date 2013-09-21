@@ -187,6 +187,7 @@ sub initialize_db
 		);
 	}
 
+
 	#
 	# TABLE DESCRIPTION
 	#
@@ -1525,7 +1526,7 @@ sub get_subfiles_by_id
 
         if (!defined ($object_id) || $object_id == 0 ) 
         {
-          $sql_query .= '"PATH" NOT IN ( SELECT "PATH" from "DIRECTORIES")';
+          $sql_query .= '"PATH" NOT IN ( SELECT "PATH" from "DIRECTORIES") or "PATH" is NULL';
         }
         else
         {
