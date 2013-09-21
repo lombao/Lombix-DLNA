@@ -538,7 +538,7 @@ sub get_media_info
     my $rtmpdumpbin = LDLNA::Config::get_rtmpdump();
     
     my $cmd;
-    if ($file =~ /^rtmp:\/\//) { $cmd = "$rtmpdumpbin -m 200 -r $file -q | $ffmpegbin -i pipe:0 2>&1 "; print "The command is $cmd\n";}
+    if ($file =~ /^rtmp:\/\//) { $cmd = "$rtmpdumpbin -m 200 -r $file -q | $ffmpegbin -i pipe:0 2>&1 "; }
     else                       { $cmd = "$ffmpegbin -i \"$file\" 2>&1"; }
     
 
