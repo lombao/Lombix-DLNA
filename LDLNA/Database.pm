@@ -1323,7 +1323,7 @@ sub subtitles_update
                 LDLNA::Database::update_db(
                     $dbh,
                     {
-                    'query' => 'UPDATE "SUBTITLES" SET "DATE" = ?, "SIZE" = ?, WHERE "ID" = ?;',
+                    'query' => 'UPDATE "SUBTITLES" SET "DATE" = ?, "SIZE" = ? WHERE "ID" = ?;',
                     'parameters' => [ $date, $size, $file_id, ],
                     },
                 );
