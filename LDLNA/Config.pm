@@ -74,10 +74,10 @@ our %CONFIG = (
 	'EXTERNALS' => [],
 	# values which can be modified manually :P
 	'PROGRAM_NAME' => 'Lombix DLNA',
-	'PROGRAM_VERSION' => '0.3',
-	'PROGRAM_DATE' => '2013-xx-xx',
+	'PROGRAM_VERSION' => '0.80.0',
+	'PROGRAM_DATE' => '2013-10-23',
 	'PROGRAM_BETA' => 1,
-	'PROGRAM_DBVERSION' => '1.1',
+	'PROGRAM_DBVERSION' => '1.4',
 	'PROGRAM_WEBSITE' => 'http://lombix.com',
 	'PROGRAM_AUTHOR' => 'Cesar Lombao',
 	'PROGRAM_DESC' => 'Perl DLNA MediaServer',

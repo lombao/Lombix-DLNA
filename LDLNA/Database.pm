@@ -114,7 +114,6 @@ sub initialize_db
 
 			$dbh->do('DROP TABLE "FILES";') if grep(/^FILES$/, @tables);
 			$dbh->do('DROP TABLE "DIRECTORIES";') if grep(/^DIRECTORIES$/, @tables);
-			$dbh->do('DROP TABLE "SUBTITLES";') if grep(/^SUBTITLES$/, @tables);
 			$dbh->do('DROP TABLE "DEVICE_IP";') if grep(/^DEVICE_IP$/, @tables);
 			$dbh->do('DROP TABLE "DEVICE_BM";') if grep(/^DEVICE_BM$/, @tables);
 			$dbh->do('DROP TABLE "DEVICE_UDN";') if grep(/^DEVICE_UDN$/, @tables);
@@ -161,7 +160,7 @@ sub initialize_db
 				"NAME"				VARCHAR(2048),
 				"PATH"				VARCHAR(2048),
 				"FULLNAME"			VARCHAR(2048),
-				"FILE_EXTENSION"		VARCHAR(4),
+				"FILE_EXTENSION"	VARCHAR(4),
 				"DATE"				BIGINT,
 				"SIZE"				BIGINT,
 				"MIME_TYPE"			VARCHAR(128) DEFAULT \'unknown\',
@@ -205,20 +204,6 @@ sub initialize_db
 		);
 	}
 
-	unless (grep(/^SUBTITLES$/, @tables))
-	{
-		$dbh->do('CREATE TABLE "SUBTITLES" (
-				"ID"				'.$SQL_ID_KEYS{$CONFIG{DB_TYPE}}.',
-				"FILEID_REF"			INTEGER,
-				"TYPE"				VARCHAR(2048),
-				"MIME_TYPE"			VARCHAR(128),
-				"NAME"				VARCHAR(2048),
-				"FULLNAME"			VARCHAR(2048),
-				"DATE"				BIGINT,
-				"SIZE"				BIGINT
-			);'
-		);
-	}
 
 	unless (grep(/^DEVICE_IP$/, @tables))
 	{
@@ -1311,84 +1296,6 @@ sub device_bm_insert_posseconds
 
 ##
 ## SUBTITLES
-
-
-sub subtitles_update
-{
-  my $date  = shift;
-  my $size  = shift;
-  my $file_id = shift;
-  
-                my $dbh = LDLNA::Database::connect();
-                LDLNA::Database::update_db(
-                    $dbh,
-                    {
-                    'query' => 'UPDATE "SUBTITLES" SET "DATE" = ?, "SIZE" = ? WHERE "ID" = ?;',
-                    'parameters' => [ $date, $size, $file_id, ],
-                    },
-                );
-                LDLNA::Database::disconnect($dbh);                                                                                                                                                                                                                                                       
-}
-
-
-sub subtitles_insert
-{
- my $file_id = shift;
- my $path    = shift;
- my $basename_path = shift;
- my $type          = shift;
- my $mimetype      = shift;
- my $date          = shift;
- my $size          = shift;
-  
-                my $dbh = LDLNA::Database::connect();
-                LDLNA::Database::insert_db(
-                    $dbh,
-                    {
-                     'query' => 'INSERT INTO "SUBTITLES" ("FILEID_REF", "FULLNAME", "NAME", "TYPE", "MIME_TYPE", "DATE", "SIZE") VALUES (?,?,?,?,?,?,?)',
-                     'parameters' => [ $file_id, $path, $basename_path, $type, $mimetype, $date, $size, ], 
-                    },
-                );
-               LDLNA::Database::disconnect($dbh);
-                                                                                                                                                                        
-}
-
-
-sub subtitles_delete
-{
- my $sub_id = shift;
- 
-             my $dbh = LDLNA::Database::connect();
-             LDLNA::Database::delete_db(
-                 $dbh,
-                 {
-                 'query' => 'DELETE FROM "SUBTITLES" WHERE "ID" = ?',
-                 'parameters' => [ $sub_id, ],
-                 },
-             );
-             LDLNA::Database::disconnect($dbh);
-             
-}
-
-
-sub subtitles_delete_by_fileid
-{
- my $file_id = shift;
- 
-        my $dbh = LDLNA::Database::connect();
-        LDLNA::Database::delete_db(
-            $dbh,
-            {
-            'query' => 'DELETE FROM "SUBTITLES" WHERE "FILEID_REF" = ?',
-            'parameters' => [ $file_id, ],
-            },
-        );
-        LDLNA::Database::disconnect($dbh);
-                                                                                                                         
-}
-
-##
-## DIRECTORIES
 
 
 

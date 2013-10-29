@@ -283,11 +283,12 @@ sub get_browseresponse_item_detailed
 	# subtitles
 	if ($item->{TYPE} eq 'video')
 	{
-		my @subtitles = LDLNA::Database::get_records_by("SUBTITLES", {FILEID_REF => $item_id});
-		foreach my $subtitle (@subtitles)
-		{
-			push(@{$xml}, '&lt;sec:CaptionInfoEx sec:type=&quot;'.$subtitle->{TYPE}.'&quot; &gt;http://'.$CONFIG{'LOCAL_IPADDR'}.':'.$CONFIG{'HTTP_PORT'}.'/subtitle/'.$subtitle->{ID}.'.'.$subtitle->{TYPE}.'&lt;/sec:CaptionInfoEx&gt;') if grep(/^sec:CaptionInfoEx$/, @{$filter});
-		}
+		my ($basicfilename) = $item->{"NAME"} =~ /^(.+)\.(mpg|avi|mkv|mp4|ogg)$/;
+		my $subtitle = File::Spec->catdir($item->{"PATH"},$basicfilename).".srt";
+		
+		
+			push(@{$xml}, '&lt;sec:CaptionInfoEx sec:type=&quot;'.'srt'.'&quot; &gt;http://'.$CONFIG{'LOCAL_IPADDR'}.':'.$CONFIG{'HTTP_PORT'}.'/subtitle/'.$item->{ID}.'.'.'srt'.'&lt;/sec:CaptionInfoEx&gt;') if grep(/^sec:CaptionInfoEx$/, @{$filter});
+		
 	}
 	push(@{$xml}, '&lt;/item&gt;');
 }

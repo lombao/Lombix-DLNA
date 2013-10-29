@@ -5,7 +5,14 @@ webpage: http://lombix.com/content/lombix-dlna
 
 Licensed under GPLv3 (see LICENSE file)
 
+Version 0.80.0
+23-10-2013
+- Added Inotify2 Support
+- Removed the Subtitles table database
+
+
 -----------------------------------------
+
 
 Version 0.70.0
 30-06-2013

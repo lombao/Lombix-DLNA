@@ -738,11 +738,14 @@ sub deliver_subtitle
 		my $type = $2;
 
 		LDLNA::Log::log('Delivering subtitle: '.$id.'.'.$type.'.', 3, 'httpstream');
+		
 
-		my @records = LDLNA::Database::get_records_by("SUBTITLES", { ID => $id, TYPE => $type});
-        my $subtitles = $records[0];
+		my @records = LDLNA::Database::get_records_by("FILES", { ID => $id });
+        my $file = $records[0];
+        my ($basicfilename) = $file->{"NAME"} =~  /^(.+)\.(mpg|avi|mkv|mp4|ogg)$/;
+        my $subtitle = File::Spec->catdir($file->{"PATH"},$basicfilename).".srt";
         
-		if (defined($subtitles->{FULLNAME}) && -f $subtitles->{FULLNAME})
+		if (defined($subtitle) && -f $subtitle )
 		{
 			my @additional_header = ();
 			if (defined($$CGI{'GETCONTENTFEATURES.DLNA.ORG'}) && $$CGI{'GETCONTENTFEATURES.DLNA.ORG'} == 1)
@@ -755,14 +758,14 @@ sub deliver_subtitle
 			}
 
 			print $FH http_header({
-				'content_length' => $subtitles->{SIZE},
+				'content_length' =>   -s $subtitle,
 				'content_type' => 'smi/caption',
 				'statuscode' => 200,
 				'additional_header' => \@additional_header,
 				'log' => 'httpstream',
 			});
 
-			sysopen(FILE, $subtitles->{FULLNAME}, O_RDONLY);
+			sysopen(FILE, $subtitle, O_RDONLY);
 			print $FH <FILE>;
 			close(FILE);
 		}
@@ -882,14 +885,13 @@ sub stream_media
 			{
 				if ($item->{TYPE} eq 'video')
 				{
-					my @subtitles = LDLNA::Database::get_records_by("SUBTITLES",{FILEID_REF => $id});
-					foreach my $subtitle (@subtitles)
-					{
-						if ($subtitle->{TYPE} eq 'srt' && -f $subtitle->{FULLNAME})
+		     		my ($basicfilename) = $item->{"NAME"} =~ /^(.+)\.(mpg|avi|mkv|mp4|ogg)$/;
+					my $subtitle = File::Spec->catdir($item->{"PATH"},$basicfilename).".srt";
+						if (-f $subtitle)
 						{
-							push(@additional_header, 'CaptionInfo.sec: http://'.$CONFIG{'LOCAL_IPADDR'}.':'.$CONFIG{'HTTP_PORT'}.'/subtitle/'.$subtitle->{ID}.'.srt');
+							push(@additional_header, 'CaptionInfo.sec: http://'.$CONFIG{'LOCAL_IPADDR'}.':'.$CONFIG{'HTTP_PORT'}.'/subtitle/'.$item->{"ID"}.'.srt');
 						}
-					}
+					
 				}
 
 				unless (grep(/^contentFeatures.dlna.org:/, @additional_header))

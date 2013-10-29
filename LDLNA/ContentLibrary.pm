@@ -143,12 +143,15 @@ sub process_directory
 		}
 		elsif (-f "$element" )
 		{
+			my ($ext) = basename($element) =~ /\.([^.]+)$/;
+			next if ($ext eq "srt" or $ext eq "doc" or $ext eq "xls" or $ext eq "exe" or $ext eq "odt" or $ext eq "pdf");
+			 
 			my $mime_type = mimetype($element);
 			LDLNA::Log::log('Processing '.$element.' with MimeType '.$mime_type.'.', 2, 'library');
 
 			if (LDLNA::Media::is_supported_mimetype($mime_type))
 			{
-				        my $media_type = LDLNA::Media::return_type_by_mimetype($mime_type);
+				    my $media_type = LDLNA::Media::return_type_by_mimetype($mime_type);
 					LDLNA::Log::log('Adding '.$media_type.' element '.$element.'.', 2, 'library');
 
 					my $fileid = add_file_to_db(
@@ -164,29 +167,6 @@ sub process_directory
 						},
 					);
 
-					if ($media_type eq 'video')
-					{
-						my $tmp = $1 if $element =~ /^(.+)\.\w{3,4}$/;
-						foreach my $extension ('srt')
-						{
-							if (-f $tmp.'.'.$extension)
-							{
-								my $subtitle_mimetype = mimetype($tmp.'.'.$extension);
-								if (LDLNA::Media::is_supported_subtitle($subtitle_mimetype))
-								{
-									add_subtitle_to_db(
-										
-										{
-											'file_id' => $fileid,
-											'path' => $tmp.'.'.$extension,
-											'mimetype' => $subtitle_mimetype,
-											'type' => $extension,
-										},
-									);
-								}
-							}
-						}
-					}
                               
 			}
 			elsif (LDLNA::Media::is_supported_playlist($mime_type))
@@ -277,28 +257,7 @@ sub add_directory_to_db
 	}
 }
 
-sub add_subtitle_to_db
-{
-	my $params = shift;
 
-	# check if file is in db
-	my @records = LDLNA::Database::get_records_by("SUBTITLES", { FULLNAME => $$params{'path'}, FILEID_REF => $$params{'file_id'}, MIME_TYPE => $$params{'mimetype'}});
-    my $results = $records[0];
-	my @fileinfo = stat($$params{'path'});
-
-	if (defined($results->{ID}))
-	{
-		if ($results->{SIZE} != $fileinfo[7] || $results->{DATE} != $fileinfo[9])
-		{
-			# update the database entry (something changed)
-			LDLNA::Database::subtitles_update($fileinfo[9], $fileinfo[7], $results->{ID});
-		}
-	}
-	else # element not in database
-	{
-		LDLNA::Database::subtitles_insert($$params{'file_id'}, $$params{'path'}, basename($$params{'path'}), $$params{'type'}, $$params{'mimetype'}, $fileinfo[9], $fileinfo[7]);
-	}
-}
 
 sub add_file_to_db
 {
@@ -387,14 +346,7 @@ sub remove_nonexistant_files
 		}
 	}
 
-	my @subtitles = LDLNA::Database::get_records_by("SUBTITLES");
-	foreach my $subtitle (@subtitles)
-	{
-		unless (-f $subtitle->{FULLNAME})
-		{
-			LDLNA::Database::subtitles_delete( $subtitle->{ID} );
-		}
-	}
+
 
 	# delete not (any more) configured - directories from database
 	my @rootdirs = ();
@@ -471,7 +423,7 @@ sub delete_all_by_itemid
 	my $object_id = shift;
 
 	LDLNA::Database::files_delete($object_id);
-	LDLNA::Database::subtitles_delete_by_fileid($object_id);
+
 }
 
 sub delete_subitems_recursively
