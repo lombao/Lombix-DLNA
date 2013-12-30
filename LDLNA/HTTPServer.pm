@@ -274,10 +274,6 @@ sub handle_connection
          
 		stream_media($1, $ENV{'METHOD'}, \%CGI, $FH, $model_name, $peer_ip_addr, $CGI{'USER-AGENT'});
 	}
-	elsif ($ENV{'OBJECT'} =~ /^\/subtitle\/(.*)$/) # handling delivering of subtitles
-	{
-		deliver_subtitle($1, $ENV{'METHOD'}, \%CGI, $FH, $model_name);
-	}
 	elsif ($ENV{'OBJECT'} =~ /^\/preview\/(.*)$/) # handling media thumbnails
 	{
 		$response = preview_media($1);
@@ -721,70 +717,7 @@ sub ctrl_content_directory_1
 	return $response;
 }
 
-#
-# this functions handels delivering the subtitle files
-#
-sub deliver_subtitle
-{
-	my $content_id = shift;
-	my $method = shift;
-	my $CGI = shift;
-	my $FH = shift;
-	my $model_name = shift;
 
-	if ($content_id =~ /^(\d+)\.(\w+)$/)
-	{
-		my $id = $1;
-		my $type = $2;
-
-		LDLNA::Log::log('Delivering subtitle: '.$id.'.'.$type.'.', 3, 'httpstream');
-		
-
-		my @records = LDLNA::Database::get_records_by("FILES", { ID => $id });
-        my $file = $records[0];
-        my ($basicfilename) = $file->{"NAME"} =~  /^(.+)\.(mpg|avi|mkv|mp4|ogg)$/;
-        my $subtitle = File::Spec->catdir($file->{"PATH"},$basicfilename).".srt";
-        
-		if (defined($subtitle) && -f $subtitle )
-		{
-			my @additional_header = ();
-			if (defined($$CGI{'GETCONTENTFEATURES.DLNA.ORG'}) && $$CGI{'GETCONTENTFEATURES.DLNA.ORG'} == 1)
-			{
-				push(@additional_header, 'contentFeatures.dlna.org: DLNA.ORG_OP=00;DLNA.ORG_CI=0;');
-			}
-			if (defined($$CGI{'TRANSFERMODE.DLNA.ORG'}) && $$CGI{'TRANSFERMODE.DLNA.ORG'} eq 'Background')
-			{
-				push(@additional_header, 'transferMode.dlna.org: Background');
-			}
-
-			print $FH http_header({
-				'content_length' =>   -s $subtitle,
-				'content_type' => 'smi/caption',
-				'statuscode' => 200,
-				'additional_header' => \@additional_header,
-				'log' => 'httpstream',
-			});
-
-			sysopen(FILE, $subtitle, O_RDONLY);
-			print $FH <FILE>;
-			close(FILE);
-		}
-		else
-		{
-			print $FH http_header({
-				'statuscode' => 404,
-				'content_type' => 'text/plain',
-			});
-		}
-	}
-	else
-	{
-		print $FH http_header({
-			'statuscode' => 501,
-			'content_type' => 'text/plain',
-		});
-	}
-}
 
 sub stream_media
 {
@@ -878,36 +811,6 @@ sub stream_media
 			}
 		}
 
-		# subtitles
-		if (defined($$CGI{'GETCAPTIONINFO.SEC'}))
-		{
-			if ($$CGI{'GETCAPTIONINFO.SEC'} == 1)
-			{
-				if ($item->{TYPE} eq 'video')
-				{
-		     		my ($basicfilename) = $item->{"NAME"} =~ /^(.+)\.(mpg|avi|mkv|mp4|ogg)$/;
-					my $subtitle = File::Spec->catdir($item->{"PATH"},$basicfilename).".srt";
-						if (-f $subtitle)
-						{
-							push(@additional_header, 'CaptionInfo.sec: http://'.$CONFIG{'LOCAL_IPADDR'}.':'.$CONFIG{'HTTP_PORT'}.'/subtitle/'.$item->{"ID"}.'.srt');
-						}
-					
-				}
-
-				unless (grep(/^contentFeatures.dlna.org:/, @additional_header))
-				{
-					push(@additional_header, 'contentFeatures.dlna.org: '.LDLNA::Media::get_dlnacontentfeatures($item));
-				}
-			}
-			else
-			{
-				LDLNA::Log::log('Invalid getCaptionInfo.sec:'.$$CGI{'GETCAPTIONINFO.SEC'}.'.', 1, 'httpstream');
-				print $FH http_header({
-					'statuscode' => 400,
-					'content_type' => 'text/plain',
-				});
-			}
-		}
 
 		# duration
 		if (defined($$CGI{'GETMEDIAINFO.SEC'}))
@@ -999,9 +902,27 @@ sub stream_media
 					#
 					if (!$item->{EXTERNAL} ) # file on disk or TRANSFERMODE is NOT required
 					{
-                        
-						sysopen(ITEM, $item->{FULLNAME}, O_RDONLY);
-						sysseek(ITEM, $lowrange, 0) if $lowrange;
+                        if ($item->{TYPE} eq 'video')
+						  {
+							my ($basicfilename) = $item->{"NAME"} =~ /^(.+)\.(avi|mp4)$/;  # This means we will only handle subtitles for avi and mp4
+							my $subtitle = File::Spec->catdir($item->{"PATH"},$basicfilename).".srt";
+							if (-f $subtitle)
+							 {
+								my $cmd;
+								if    ( $item->{"NAME"} =~ /mp4$/ ) { $cmd = "mencoder -really-quiet -oac mp3lame -ovc lavc -lavcopts vcodec=mpeg4 -sub $subtitle -subfont-text-scale 3.0 -subpos 95  -o - ".$item->{"FULLNAME"}; }
+								elsif ( $item->{"NAME"} =~ /avi$/ ) { $cmd = "mencoder -really-quiet -oac copy -ovc raw -sub $subtitle -subfont-text-scale 3.0 -subpos 95  -o - ".$item->{"FULLNAME"}; }
+								open(ITEM, '-|', $cmd);
+								binmode(ITEM); 
+							 }
+							else {
+							   sysopen(ITEM, $item->{FULLNAME}, O_RDONLY);
+						       sysseek(ITEM, $lowrange, 0) if $lowrange;	
+					         }
+						  }
+						 else { 
+						   sysopen(ITEM, $item->{FULLNAME}, O_RDONLY);
+						   sysseek(ITEM, $lowrange, 0) if $lowrange;
+						 }
 					}
 					else # streams, scripts, 
 					{
@@ -1012,15 +933,14 @@ sub stream_media
                             if ($item->{FULLNAME} =~ /^rtmp/) { $command = " $CONFIG{'RTMPDUMP_BIN'} -r $item->{FULLNAME} -q -v 2>/dev/null"; }
                             else {$command = "$CONFIG{'FFMPEG_BIN'} -i $item->{FULLNAME} -vcodec copy -acodec copy -f avi pipe:1  2>/dev/null"; }
 						}
-						else # if it is a script
-						{
-							$command = $item->{FULLNAME};
-						}
+
                         
 						open(ITEM, '-|', $command);
 						binmode(ITEM);
 						@additional_header = map { /^(Content-Length|Accept-Ranges):/i ? () : $_ } @additional_header; # delete some header
 					}
+					
+					
 					print $FH http_header({
 						'statuscode' => $statuscode,
 						'additional_header' => \@additional_header,
