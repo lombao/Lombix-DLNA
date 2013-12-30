@@ -32,6 +32,7 @@ REQUISITES
 
 * rtmpdump ( If rtmp support required )
 
+* mencoder ( if subtitles are required )
 
 PERL MODULES
 ------------
