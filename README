@@ -2,7 +2,7 @@ Lombix DLNA
 
 (c) 2013 Cesar Lombao
 email: lombao@lombix.com
-webpage: http://lombix.com/lombix-dlna
+webpage: http://lombix.com/content/lombix-dlna
 
 Licensed under GPLv3 (see LICENSE file)
 
@@ -106,5 +106,17 @@ Execute ldnla.pl script
 ( To be completed )
 
 
+SUBTITLES
+-------------
+The subtitles accepted are *.srt files. To make them work just copy the *.srt file into 
+the same place than the video with the same name, for isntance, 1x01.avi and 1x01.srt , so when you 
+watch 1x01.avi the subtitles included in 1x01.srt will be shown.
+
+NOTE: The subtitles are merged locally in the server before being streamed to the player, so you don't
+need the player to support any kind of subtitle, the player will just receive a video stream with them embedded.
+
+NOTE: I am afraid that at this stage you should expect some unstability on this area, besides , if you have a very weak
+server ( like an old ATOM ) this might not have CPU power enough to handle the merge of video and subtitles. 
+I've tested it with an AMD E350 Zacate and it works, but no much room for anything else.
 
 Cesar Lombao
