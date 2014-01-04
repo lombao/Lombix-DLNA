@@ -74,7 +74,7 @@ our %CONFIG = (
 	'EXTERNALS' => [],
 	# values which can be modified manually :P
 	'PROGRAM_NAME' => 'Lombix DLNA',
-	'PROGRAM_VERSION' => '0.81.0',
+	'PROGRAM_VERSION' => '0.82.0',
 	'PROGRAM_DATE' => '2013-10-23',
 	'PROGRAM_BETA' => 1,
 	'PROGRAM_DBVERSION' => '1.4',

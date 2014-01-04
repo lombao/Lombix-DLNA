@@ -24,7 +24,6 @@ package LDLNA::ContentLibrary;
 use strict;
 use warnings;
 
-use Linux::Inotify2;
 use DBI;
 use Date::Format;
 use File::Basename;
@@ -38,7 +37,7 @@ use LDLNA::Media;
 use LDLNA::Utils;
 
 
-our $inotify;
+
 
 sub index_directories_thread_external
 {
@@ -70,7 +69,7 @@ sub index_directories_thread
 {
  
 
-        $inotify = new Linux::Inotify2 or die "unable to create new inotify object: $!";
+        
 	LDLNA::Log::log('Starting LDLNA::ContentLibrary::index_directories_thread().', 1, 'library');
 
 		my $timestamp_start = time();
@@ -78,13 +77,13 @@ sub index_directories_thread
 		{
 				
 		   process_directory(  $directory->{'path'} ); 
-	        }
+	    }
 
              
 		my $timestamp_end = time();
 
 		# add our timestamp when finished
-                LDLNA::Database::metadata_update_value($timestamp_end,'TIMESTAMP');
+        LDLNA::Database::metadata_update_value($timestamp_end,'TIMESTAMP');
 
 		my $duration = $timestamp_end - $timestamp_start;
 		LDLNA::Log::log('Indexing configured media directories took '.$duration.' seconds.', 1, 'library');
@@ -93,27 +92,10 @@ sub index_directories_thread
 		LDLNA::Log::log('Configured media directories include '.$amount.' with '.LDLNA::Utils::convert_bytes($size).' of size.', 1, 'library');
 
 
-1 while $inotify->poll;
+
 	
 }
 
-sub inotify_process_directory
-{
- my $e = shift;
- 
-    my $name = $e->fullname;
-    if ( $e->IN_CREATE ) 
-     {
-       LDLNA::Log::log('New file included '.$e->fullname, 1, 'library');  
-       process_directory( dirname($name) );
-     }
-    elsif ($e->IN_DELETE )
-     {
-      remove_nonexistant_files(); # This is brutal, if we have the name we shouldnt re-check ALL the files.
-                                  # OBviously to be improved
-     }
-                
-}
 
 sub process_directory
 {
@@ -121,8 +103,7 @@ sub process_directory
 	$path =~ s/\/$//;
 
 	add_directory_to_db( $path );
-	$inotify->watch($path, IN_CREATE | IN_DELETE, \&inotify_process_directory);
-
+	
 	$path = LDLNA::Utils::escape_brackets($path);
 	LDLNA::Log::log('Globbing directory: '.LDLNA::Utils::create_filesystem_path([ $path, '*', ]).'.', 2, 'library');
 	my @elements = bsd_glob(LDLNA::Utils::create_filesystem_path([ $path, '*', ]));

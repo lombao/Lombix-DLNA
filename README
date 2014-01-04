@@ -77,18 +77,12 @@ deb ). Only as a last resort you can use cpan to install just a few.
    * use Data::Dumper;
    * use SOAP::Lite;
    * use LWP::UserAgent;
-   * use Linux::Inotify2;
 
  - OPTIONAL MODULES ( You might need them depending on the options choosen )
 
    * DBD::Pg ( Only if used postgresql )
    * DBD::Sqlite ( If you use SQLite )
    
-
-
-
-
-
 
 
 
@@ -104,6 +98,13 @@ Copy the ldlna.conf into /etc and modify it following your needs
 Setup the database if you want to use Postgresql or MariaDB/Mysql 
 Execute ldnla.pl script
 ( To be completed )
+
+
+ADDING NEW FILES TO CATALOG
+--------------------------
+Currently, you have to stop/start ( or restart ) the ldlna so all the
+directories will be scan for new additions/deletions. This is a big TO DO
+area. 
 
 
 SUBTITLES
